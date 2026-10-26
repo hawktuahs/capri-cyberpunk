@@ -1,21 +1,21 @@
 {
   "tag_name": "v1.2.0",
-  "html_url": "https://github.com/pranavgnn/bt-lab-project/releases/tag/v1.2.0",
+  "html_url": "https://github.com/hawktuahs/capri-cyberpunk/releases/tag/v1.2.0",
   "draft": false,
   "prerelease": false,
   "assets": [
     {
-      "browser_download_url": "https://github.com/pranavgnn/bt-lab-project/releases/download/v1.2.0/Capri-Desktop-v1.2.0.zip",
+      "browser_download_url": "https://github.com/hawktuahs/capri-cyberpunk/releases/download/v1.2.0/Capri-Desktop-v1.2.0.zip",
       "name": "Capri-Desktop-v1.2.0.zip",
       "size": 33554432
     },
     {
-      "browser_download_url": "https://github.com/pranavgnn/bt-lab-project/releases/download/v1.2.0/Capri-Setup.exe",
+      "browser_download_url": "https://github.com/hawktuahs/capri-cyberpunk/releases/download/v1.2.0/Capri-Setup.exe",
       "name": "Capri-Setup.exe",
       "size": 8367104
     },
     {
-      "browser_download_url": "https://github.com/pranavgnn/bt-lab-project/releases/download/v1.2.0/Capri.exe",
+      "browser_download_url": "https://github.com/hawktuahs/capri-cyberpunk/releases/download/v1.2.0/Capri.exe",
       "name": "Capri.exe",
       "size": 29444608
     }

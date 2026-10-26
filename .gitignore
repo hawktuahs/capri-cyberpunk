@@ -14,6 +14,7 @@ WhatsApp*
 ASMR*.mp3
 test_*.wav
 Capri-Desktop-*.zip
+create_github_release.py
 
 # Visual Studio / VS Code
 .vs/

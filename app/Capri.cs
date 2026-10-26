@@ -671,7 +671,7 @@ namespace CapriDesktop
         internal static Release FetchLatestRelease(string repo = null)
         {
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
-            string target = string.IsNullOrEmpty(repo) ? "pranavgnn/bt-lab-project" : repo;
+            string target = string.IsNullOrEmpty(repo) ? "hawktuahs/capri-cyberpunk" : repo;
             try
             {
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create("https://api.github.com/repos/" + target + "/releases/latest");

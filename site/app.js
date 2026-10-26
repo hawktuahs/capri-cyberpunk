@@ -1,5 +1,5 @@
 (() => {
-  const primaryRepo = 'pranavgnn/bt-lab-project';
+  const primaryRepo = 'hawktuahs/capri-cyberpunk';
   const fallbackRepo = 'lachydotmcg/capri-desktop';
   const install = document.querySelector('#install');
 
