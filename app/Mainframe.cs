@@ -21,7 +21,7 @@ namespace CapriDesktop
 
         private const int Wide = 420;
         private const int Tall = 712;
-        private const int SetupHeight = 118;
+        private const int SetupHeight = 160;
         private const int VoiceHeight = 174;
 
         private sealed class LayoutEntry
@@ -145,11 +145,11 @@ namespace CapriDesktop
             freeGroqBtn.Accent = Look.Cyan;
             freeKeyBtn = Make("NVIDIA Key", 332, 168, 64, 26, delegate { DesktopActions.OpenUrl("https://build.nvidia.com"); }, false);
             freeKeyBtn.Accent = NeonGreen;
-            for (int i = 0; i < 3; i++) steps[i] = Caption("", 24, 138 + i * 22, 11f, FontStyle.Regular, Look.Dim, false);
-            setup = Make("Install Local LLM", 24, 226, 280, 28, delegate { if (capri.SettingUp) capri.CancelSetup(); else capri.SetUpBrain(); }, false);
+            for (int i = 0; i < 3; i++) steps[i] = Caption("", 24, 210 + i * 22, 11f, FontStyle.Regular, Look.Dim, false);
+            setup = Make("Install Local LLM", 24, 286, 280, 28, delegate { if (capri.SettingUp) capri.CancelSetup(); else capri.SetUpBrain(); }, false);
             setup.Accent = Look.Cyan;
             setup.Loud = true;
-            hint = Caption("100% Local Ollama / Groq / NVIDIA NIM Active.", 24, 262, 10.5f, FontStyle.Italic, Look.Dim, false);
+            hint = Caption("Connect a cloud key above or install a local model.", 24, 325, 10.5f, FontStyle.Italic, Look.Dim, false);
 
             // Section 2: Biochip Voice & Speech Recognition
             Caption("02 // BIOCHIP AUDIO SYNTH & EARS [LOCAL]", 24, 216, 11.5f, FontStyle.Bold, NeonPink, true);
@@ -251,10 +251,12 @@ namespace CapriDesktop
         {
             Font = Look.Mono(11.5f * uiScale, FontStyle.Regular, GraphicsUnit.Pixel);
             int shift = expanded ? SetupHeight : 0;
+            int availableHeight = Screen.FromControl(this).WorkingArea.Height - 24;
+            if (Scaled(Tall + shift) > availableHeight) uiScale = availableHeight / (float)(Tall + shift);
             foreach (LayoutEntry item in layoutItems)
             {
                 int top = item.BaseBounds.Y + (item.ShiftWithSetup ? shift : 0);
-                if (item.Ctrl == refresh) top = expanded ? 226 : 134;
+                if (item.Ctrl == refresh) top = expanded ? 286 : 134;
                 item.Ctrl.Font = Look.Mono(item.BaseFontSize * uiScale, item.Style, GraphicsUnit.Pixel);
                 if (item.Ctrl is Label && ((Label)item.Ctrl).AutoSize)
                 {
@@ -359,7 +361,7 @@ namespace CapriDesktop
             using (Brush pinkBar = new SolidBrush(NeonPink))
             using (Brush cyanBar = new SolidBrush(Look.Cyan))
             {
-                graphics.FillRectangle(greenBar, 11 * s, 62 * s, 3.5f * s, ((expanded ? 276 : 196) - 62) * s);
+                graphics.FillRectangle(greenBar, 11 * s, 62 * s, 3.5f * s, ((expanded ? 350 : 196) - 62) * s);
                 graphics.FillRectangle(pinkBar, 11 * s, (216 + shift) * s, 3.5f * s, 116 * s);
                 graphics.FillRectangle(cyanBar, 11 * s, (180 + v + shift) * s, 3.5f * s, 252 * s);
             }
@@ -371,7 +373,7 @@ namespace CapriDesktop
                 int lit = (int)Math.Round(count * filled);
                 using (Brush on = new SolidBrush(NeonGreen))
                 using (Brush off = new SolidBrush(Track))
-                    for (int i = 0; i < count; i++) graphics.FillRectangle(i < lit ? on : off, 24 * s + i * pitch, 210 * s, pitch - 2 * s, 6 * s);
+                    for (int i = 0; i < count; i++) graphics.FillRectangle(i < lit ? on : off, 24 * s + i * pitch, 276 * s, pitch - 2 * s, 6 * s);
             }
 
             // Bottom-right resize grip indicator
@@ -408,10 +410,10 @@ namespace CapriDesktop
             expanded = setupShown;
             foreach (Label step in steps) step.Visible = setupShown;
             setup.Visible = setupShown;
-            if (cloudKeyEntry != null) cloudKeyEntry.Visible = !setupShown;
-            if (cloudConnectBtn != null) cloudConnectBtn.Visible = !setupShown;
-            if (freeGroqBtn != null) freeGroqBtn.Visible = !setupShown;
-            if (freeKeyBtn != null) freeKeyBtn.Visible = !setupShown;
+            if (cloudKeyEntry != null) cloudKeyEntry.Visible = true;
+            if (cloudConnectBtn != null) cloudConnectBtn.Visible = true;
+            if (freeGroqBtn != null) freeGroqBtn.Visible = true;
+            if (freeKeyBtn != null) freeKeyBtn.Visible = true;
             ApplyScale();
         }
 
@@ -553,12 +555,12 @@ namespace CapriDesktop
             if (key != null && key.StartsWith("gsk_", StringComparison.OrdinalIgnoreCase))
             {
                 brainName.Text = "Groq Cloud GPU · " + model;
-                brainNote.Text = "Groq High-Speed API Active (" + Voice.Tail(key) + ") · 300+ tok/s Free Tier";
+                brainNote.Text = "Groq key saved (" + Voice.Tail(key) + ") · Send a message to test";
             }
             else
             {
                 brainName.Text = "NVIDIA NIM Cloud · " + model;
-                brainNote.Text = "Cloud NIM Active (" + Voice.Tail(key) + ") · 0 MB Local RAM Needed";
+                brainNote.Text = "NVIDIA key saved (" + Voice.Tail(key) + ") · Send a message to test";
             }
             models.Text = model;
             models.Visible = true;

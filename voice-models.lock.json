@@ -1,0 +1,7 @@
+{
+  "kokoro-v1.0.int8.onnx": "6e742170d309016e5891a994e1ce1559c702a2ccd0075e67ef7157974f6406cb",
+  "voices-v1.0.bin": "bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d",
+  "vosk-model-small-en-us-0.15.zip": "30f26242c4eb449f948e42cb302dd7a686cb29a3423a8367f99ff41780942498",
+  "phonemizer-3.4.0-source.tar.gz": "e13231980c50bc671ec0466379ba027260ad9d61929952d8ae9665b3d0f251eb",
+  "espeak-ng-source.tar.gz": "cd83f84c4e495f281ac14e919aecf2834306ec1ea1b498de8ef6000f3a0f90de"
+}

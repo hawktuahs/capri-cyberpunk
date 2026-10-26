@@ -21,3 +21,6 @@ create_github_release.py
 .vscode/
 bin/
 obj/
+.build-voice/
+voice/
+release-output/

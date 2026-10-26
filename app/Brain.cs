@@ -67,6 +67,8 @@ namespace CapriDesktop
         [DataMember(Name = "max_tokens")] public int Limit = 90;
         [DataMember(Name = "temperature")] public double Temperature = 0.85;
         [DataMember(Name = "stream")] public bool Stream;
+        [DataMember(Name = "reasoning_effort", EmitDefaultValue = false)] public string ReasoningEffort;
+        [DataMember(Name = "include_reasoning", EmitDefaultValue = false)] public bool? IncludeReasoning;
     }
 
     [DataContract]
@@ -113,7 +115,7 @@ namespace CapriDesktop
         private HttpWebRequest active;
         internal volatile string Model = "llama3.1:8b";
         internal volatile string CloudKey;
-        internal volatile string CloudModel = "llama-3.3-70b-versatile";
+        internal volatile string CloudModel = "openai/gpt-oss-20b";
         internal volatile Engine Local;
         internal volatile Pick LocalPick;
         internal volatile bool AllowReflexFallback;
@@ -237,7 +239,7 @@ namespace CapriDesktop
                     if (key.StartsWith("gsk_", StringComparison.OrdinalIgnoreCase))
                     {
                         endpoint = "https://api.groq.com/openai/v1/chat/completions";
-                        mod = !string.IsNullOrEmpty(CloudModel) && CloudModel.IndexOf("llama", StringComparison.OrdinalIgnoreCase) >= 0 ? CloudModel : "llama-3.3-70b-versatile";
+                        mod = !string.IsNullOrEmpty(CloudModel) ? CloudModel : "openai/gpt-oss-20b";
                     }
                     else if (key.StartsWith("nvapi-", StringComparison.OrdinalIgnoreCase))
                     {
@@ -246,16 +248,17 @@ namespace CapriDesktop
                     }
                     else
                     {
-                        endpoint = "https://api.groq.com/openai/v1/chat/completions";
-                        mod = !string.IsNullOrEmpty(CloudModel) ? CloudModel : "llama-3.3-70b-versatile";
+                        throw new BrainException("Use a Groq key starting gsk_ or an NVIDIA key starting nvapi-.");
                     }
 
                     CompletionRequest req = new CompletionRequest
                     {
                         Model = mod,
                         Messages = messages.ToArray(),
-                        Limit = 90,
-                        Temperature = 0.85
+                        Limit = key.StartsWith("gsk_", StringComparison.OrdinalIgnoreCase) ? 1024 : 90,
+                        Temperature = 0.85,
+                        ReasoningEffort = mod.StartsWith("openai/gpt-oss", StringComparison.OrdinalIgnoreCase) ? "low" : null,
+                        IncludeReasoning = mod.StartsWith("openai/gpt-oss", StringComparison.OrdinalIgnoreCase) ? (bool?)false : null
                     };
                     CompletionReply reply = Send<CompletionReply>(endpoint, req, 45000, key);
                     raw = reply.Choices != null && reply.Choices.Length > 0 && reply.Choices[0].Message != null ? reply.Choices[0].Message.Content : null;
@@ -281,7 +284,7 @@ namespace CapriDesktop
             }
             catch (Exception)
             {
-                if (AllowReflexFallback)
+                if (AllowReflexFallback && string.IsNullOrEmpty(CloudKey))
                 {
                     string reflex = DesktopActions.ReflexReply(this, text);
                     Remember(text, reflex);
@@ -539,6 +542,18 @@ namespace CapriDesktop
             {
                 if (helperProcess != null && !helperProcess.HasExited) return;
                 string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string bundledHelper = Path.Combine(baseDir, @"voice\CapriHelper.exe");
+                if (File.Exists(bundledHelper))
+                {
+                    helperProcess = Process.Start(new ProcessStartInfo(bundledHelper, "17777")
+                    {
+                        CreateNoWindow = true,
+                        UseShellExecute = false,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        WorkingDirectory = Path.GetDirectoryName(bundledHelper)
+                    });
+                    return;
+                }
                 string scriptPath = Path.Combine(baseDir, "capri_helper.py");
                 if (!File.Exists(scriptPath))
                 {
@@ -599,6 +614,17 @@ namespace CapriDesktop
             {
                 return null;
             }
+        }
+
+        internal static void StopHelper()
+        {
+            Process owned = helperProcess;
+            helperProcess = null;
+            if (owned == null) return;
+            try { if (!owned.HasExited) { owned.Kill(); owned.WaitForExit(2000); } }
+            catch (InvalidOperationException) { }
+            catch (System.ComponentModel.Win32Exception) { }
+            finally { owned.Dispose(); }
         }
 
         internal static void OpenUrl(string url)

@@ -1,61 +1,35 @@
-# Capri Desktop // Release Packaging Script
-# Creates Capri-Desktop-v1.2.0.zip for GitHub Releases distribution
-
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-if (-not $scriptDir) { $scriptDir = "." }
-
-$version = "v1.2.0"
-$zipName = "Capri-Desktop-$version.zip"
-$zipPath = Join-Path $scriptDir $zipName
-$stagingDir = Join-Path $env:TEMP "Capri-Staging"
-
-Write-Host "Packaging $zipName..." -ForegroundColor Cyan
-
-if (Test-Path $stagingDir) { Remove-Item $stagingDir -Recurse -Force }
-New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
-
-# Files to bundle
-$filesToCopy = @(
-    "Capri.exe",
-    "capri_helper.py",
-    "capri_chatterbox_conds.pt",
-    "setup_voice.bat",
-    "setup_voice.ps1",
-    "run.bat",
-    "launch_capri.ps1",
-    "README.md"
-)
-
-foreach ($f in $filesToCopy) {
-    $src = Join-Path $scriptDir $f
-    if (Test-Path $src) {
-        Copy-Item -Path $src -Destination $stagingDir -Force
-        Write-Host "  [+] Copied: $f" -ForegroundColor Green
-    } else {
-        Write-Host "  [!] Missing optional file: $f" -ForegroundColor Yellow
-    }
+param([switch]$SkipVoiceBuild)
+$ErrorActionPreference = 'Stop'
+Set-Location $PSScriptRoot
+$config = Get-Content -LiteralPath release.json -Raw | ConvertFrom-Json
+if (-not $SkipVoiceBuild) {
+    & .\build-voice.ps1
+    if ($LASTEXITCODE -ne 0) { throw 'Voice build failed.' }
 }
-
-# Copy assets folder
-$assetsSrc = Join-Path $scriptDir "assets"
-if (Test-Path $assetsSrc) {
-    Copy-Item -Path $assetsSrc -Destination $stagingDir -Recurse -Force
-    Write-Host "  [+] Copied: assets/" -ForegroundColor Green
+& .\build.ps1
+if ($LASTEXITCODE -ne 0) { throw 'Application build failed.' }
+$actualVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $PSScriptRoot 'Capri.exe')).FileVersion
+if ($actualVersion -ne "$($config.version).0") { throw 'AssemblyInfo.cs and release.json versions differ.' }
+$requiredFiles = @('voice\CapriHelper.exe', 'voice\models\kokoro-v1.0.int8.onnx', 'voice\models\voices-v1.0.bin', 'voice\models\vosk-model-small-en-us-0.15\am\final.mdl', 'voice\licenses\packages.json')
+foreach ($file in $requiredFiles) {
+    if (-not (Test-Path -LiteralPath $file)) { throw "Missing bundled component: $file" }
 }
-
-# Create ZIP archive
-if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+$outputRoot = Join-Path $PSScriptRoot 'release-output'
+New-Item -ItemType Directory -Force -Path $outputRoot | Out-Null
+$staging = Join-Path $outputRoot ('staging-' + [Guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $staging | Out-Null
+foreach ($file in @('Capri.exe','run.bat','launch_capri.ps1','README.md','RELEASING.md','THIRD_PARTY.md','release.json')) {
+    Copy-Item -LiteralPath $file -Destination $staging
+}
+Copy-Item -LiteralPath voice -Destination $staging -Recurse
+# Keep the complete helper source with its optional third-party engines and notices.
+$sourceFolder = Join-Path $staging 'source'
+New-Item -ItemType Directory -Path $sourceFolder | Out-Null
+Copy-Item -LiteralPath capri_helper.py,bundled_audio.py,voice-requirements.txt,voice-requirements.lock.txt,voice-models.lock.json -Destination $sourceFolder
+$zipPath = Join-Path $outputRoot $config.asset
+if (Test-Path -LiteralPath $zipPath) { throw 'Output already exists. Move it aside before rebuilding this version.' }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-[System.IO.Compression.ZipFile]::CreateFromDirectory($stagingDir, $zipPath)
-
-Remove-Item $stagingDir -Recurse -Force -ErrorAction SilentlyContinue
-
-$zipItem = Get-Item $zipPath
-$zipSizeMb = [Math]::Round($zipItem.Length / 1MB, 2)
-
-Write-Host ""
-Write-Host "==========================================================" -ForegroundColor Green
-Write-Host "  PACKAGE CREATED SUCCESSFULLY: $zipName ($zipSizeMb MB)" -ForegroundColor Green
-Write-Host "==========================================================" -ForegroundColor Green
-Write-Host "  Location: $zipPath" -ForegroundColor White
-Write-Host "  Attach this file to your GitHub Release: $version" -ForegroundColor Cyan
+[IO.Compression.ZipFile]::CreateFromDirectory($staging, $zipPath, [IO.Compression.CompressionLevel]::Optimal, $false)
+$hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+"$hash  $($config.asset)" | Set-Content -LiteralPath (Join-Path $outputRoot 'SHA256SUMS.txt') -Encoding ascii
+Write-Host "Ready: $zipPath" -ForegroundColor Green

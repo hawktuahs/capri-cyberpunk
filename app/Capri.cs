@@ -323,7 +323,7 @@ namespace CapriDesktop
         private VoiceListing voices;
         private int[] mouths;
         private double pace = LettersPerSecond;
-        private const string ReleasesPage = "https://github.com/lachydotmcg/capri-desktop/releases/";
+        private const string ReleasesPage = "https://github.com/hawktuahs/capri-cyberpunk/releases/";
         private const string OllamaPage = "https://ollama.com/download";
         private const int PaddingSize = 36;
         private const int DismountId = 0x4361;
@@ -452,8 +452,14 @@ namespace CapriDesktop
             mainframe = new Mainframe(this, tray.Icon, Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             brain.AllowReflexFallback = !testing;
             DesktopActions.EnableBrowserLaunch = !testing;
-            brain.CloudKey = preferences.CloudKey;
-            brain.CloudModel = string.IsNullOrEmpty(preferences.CloudModel) ? "meta/llama-3.1-8b-instruct" : preferences.CloudModel;
+            brain.CloudKey = Voice.Unprotect(preferences.CloudKey);
+            if (brain.CloudKey == null && preferences.CloudKey != null && (preferences.CloudKey.StartsWith("gsk_") || preferences.CloudKey.StartsWith("nvapi-")))
+            {
+                brain.CloudKey = preferences.CloudKey;
+                preferences.CloudKey = Voice.Protect(brain.CloudKey);
+                SavePreferences();
+            }
+            brain.CloudModel = string.IsNullOrEmpty(preferences.CloudModel) ? (brain.CloudKey != null && brain.CloudKey.StartsWith("nvapi-") ? "meta/llama-3.1-8b-instruct" : "openai/gpt-oss-20b") : preferences.CloudModel;
             voice.Key = Voice.Unprotect(preferences.VoiceKey);
             voice.VoiceId = (string.IsNullOrEmpty(preferences.VoiceId) || preferences.VoiceId == Voice.Default) ? "af_bella" : preferences.VoiceId;
             voice.Model = string.IsNullOrEmpty(preferences.VoiceModel) ? null : preferences.VoiceModel;
@@ -682,15 +688,7 @@ namespace CapriDesktop
                 using (WebResponse response = request.GetResponse())
                 using (Stream body = response.GetResponseStream()) return ParseRelease(body);
             }
-            catch (WebException wex)
-            {
-                var httpResp = wex.Response as HttpWebResponse;
-                if (httpResp != null && httpResp.StatusCode == HttpStatusCode.NotFound && target != "lachydotmcg/capri-desktop")
-                {
-                    try { return FetchLatestRelease("lachydotmcg/capri-desktop"); } catch { }
-                }
-                throw;
-            }
+            catch (WebException) { throw; }
         }
 
         internal static Release ParseRelease(Stream body) { return (Release)new DataContractJsonSerializer(typeof(Release)).ReadObject(body); }
@@ -1595,7 +1593,9 @@ namespace CapriDesktop
         internal void SetCloudKey(string key)
         {
             brain.CloudKey = string.IsNullOrEmpty(key) ? null : key.Trim();
-            preferences.CloudKey = brain.CloudKey;
+            brain.CloudModel = brain.CloudKey != null && brain.CloudKey.StartsWith("nvapi-", StringComparison.OrdinalIgnoreCase) ? "meta/llama-3.1-8b-instruct" : "openai/gpt-oss-20b";
+            preferences.CloudKey = brain.CloudKey == null ? null : Voice.Protect(brain.CloudKey);
+            preferences.CloudModel = brain.CloudModel;
             SavePreferences();
             FindBrain();
         }
@@ -2715,6 +2715,7 @@ namespace CapriDesktop
             signals.Stop();
             brain.Cancel();
             StopChat();
+            DesktopActions.StopHelper();
             speaker.Close();
             voice.Stop();
             engine.Cancel = true;

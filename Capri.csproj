@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="app\*.cs" />
+    <Compile Include="app\*.cs" Exclude="app\Setup.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,5 +48,19 @@
     <EmbeddedResource Include="assets\sprites\perch_blink_glitch.png" LogicalName="Capri.Sprite.perch_blink_glitch.png" />
     <EmbeddedResource Include="assets\sprites\perch_glitch.png" LogicalName="Capri.Sprite.perch_glitch.png" />
     <EmbeddedResource Include="assets\sprites\mouth.png" LogicalName="Capri.Sprite.mouth.png" />
+    <EmbeddedResource Include="assets\sprites\box_talk.png" LogicalName="Capri.Sprite.box_talk.png" />
+    <EmbeddedResource Include="assets\sprites\box_listen.png" LogicalName="Capri.Sprite.box_listen.png" />
+    <EmbeddedResource Include="assets\sprites\box_eyes.png" LogicalName="Capri.Sprite.box_eyes.png" />
+    <EmbeddedResource Include="assets\sprites\holo_banner.png" LogicalName="Capri.Sprite.holo_banner.png" />
+    <EmbeddedResource Include="assets\sprites\holo_call.png" LogicalName="Capri.Sprite.holo_call.png" />
+    <EmbeddedResource Include="assets\sprites\hi_box.png" LogicalName="Capri.Sprite.hi_box.png" />
+    <EmbeddedResource Include="assets\sprites\box_tenor_talk.png" LogicalName="Capri.Sprite.box_tenor_talk.png" />
+    <EmbeddedResource Include="assets\sprites\box_tenor_glitch.png" LogicalName="Capri.Sprite.box_tenor_glitch.png" />
+    <EmbeddedResource Include="assets\sprites\box_canon_smirk.png" LogicalName="Capri.Sprite.box_canon_smirk.png" />
+    <EmbeddedResource Include="assets\sprites\box_canon_intense.png" LogicalName="Capri.Sprite.box_canon_intense.png" />
+    <EmbeddedResource Include="assets\sprites\box_canon_neon.png" LogicalName="Capri.Sprite.box_canon_neon.png" />
+    <EmbeddedResource Include="assets\sprites\box_canon_holo.png" LogicalName="Capri.Sprite.box_canon_holo.png" />
+    <EmbeddedResource Include="assets\sprites\screen_takeover.png" LogicalName="Capri.Sprite.screen_takeover.png" />
+    <EmbeddedResource Include="assets\sprites\box_cutins.png" LogicalName="Capri.Sprite.box_cutins.png" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,50 @@
+name: Release app
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: app-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate website
+        shell: pwsh
+        run: |
+          python scripts/check_site.py
+          if ($LASTEXITCODE -ne 0) { throw 'Website checks failed' }
+          node --check site/app.js
+          if ($LASTEXITCODE -ne 0) { throw 'JavaScript check failed' }
+      - name: Build and test bundled speech
+        shell: pwsh
+        run: |
+          ./build-voice.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Speech build failed' }
+          python scripts/test_voice_http.py
+          if ($LASTEXITCODE -ne 0) { throw 'Speech integration test failed' }
+      - name: Package Windows release
+        shell: pwsh
+        run: ./package_release.ps1 -SkipVoiceBuild
+      - name: Upload reviewable build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Capri-Windows-x64
+          path: |
+            release-output/*.zip
+            release-output/SHA256SUMS.txt
+            .build-voice/voice-test.json
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $config = Get-Content release.json -Raw | ConvertFrom-Json
+          gh release create "v$($config.version)" "release-output/$($config.asset)" release-output/SHA256SUMS.txt --draft --target $env:GITHUB_SHA --title "Capri v$($config.version)" --notes-file CHANGELOG.md
+          if ($LASTEXITCODE -ne 0) { throw 'Draft release creation failed' }

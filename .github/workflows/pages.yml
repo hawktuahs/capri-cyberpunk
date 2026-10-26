@@ -24,14 +24,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate website links and scripts
+        run: |
+          python3 scripts/check_site.py
+          node --check site/app.js
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Deploy the docs directory
-          path: './docs'
+          path: './site'
 
       - name: Deploy to GitHub Pages
         id: deployment

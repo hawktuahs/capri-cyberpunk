@@ -23,7 +23,7 @@ from socketserver import ThreadingMixIn
 # 1. Automation & Windows Inspection
 try:
     import pyautogui
-    pyautogui.FAILSAFE = False
+    pyautogui.FAILSAFE = True
     pyautogui.PAUSE = 0.03
 except Exception:
     pyautogui = None
@@ -43,91 +43,101 @@ try:
 except Exception:
     DDGS = None
 
-import soundfile as sf
-import torch
+import bundled_audio
 import numpy as np
 
-# 2. Chatterbox Turbo Voice Clone (Canon Edgerunners Season 2 Capri zero-shot neural clone)
-chatterbox_model = None
-def get_chatterbox():
-    global chatterbox_model
-    if chatterbox_model is not None:
-        return chatterbox_model
+if bundled_audio.AVAILABLE:
+    chatterbox_model = kokoro_pipeline = whistle_pipeline = whisper_pipeline = sr_recognizer = None
     try:
-        from chatterbox.tts_turbo import ChatterboxTurboTTS, Conditionals
-        dev = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"[*] Initializing Chatterbox Turbo on {dev}...")
-        model = ChatterboxTurboTTS.from_pretrained(device=dev)
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        cond_path = os.path.join(base_dir, "capri_chatterbox_conds.pt")
-        if os.path.exists(cond_path):
-            model.conds = Conditionals.load(cond_path, map_location=dev).to(dev)
-            print("[+] Loaded precomputed Capri voice conditionals into Chatterbox!")
-        else:
-            ref_audio = os.path.join(base_dir, "Capri Explains How She Was Created ~ Cyberpunk Edgerunners Season 2 Episode 4.mp3")
-            if os.path.exists(ref_audio):
-                model.prepare_conditionals(ref_audio)
-                model.conds.save(cond_path)
-                print("[+] Precomputed and saved Capri voice conditionals into Chatterbox!")
-        chatterbox_model = model
-        return chatterbox_model
-    except Exception as e:
-        print(f"[!] Chatterbox init warning: {e}")
-        return None
+        from rapidocr_onnxruntime import RapidOCR
+        rapid_ocr = RapidOCR()
+    except Exception:
+        rapid_ocr = None
+else:
+    import soundfile as sf
+    import torch
+    import numpy as np
 
-# 3. Kokoro Ultra-Realistic Human TTS
-kokoro_pipeline = None
-try:
-    import kokoro
-    dev = "cuda" if torch.cuda.is_available() else "cpu"
-    kokoro_pipeline = kokoro.KPipeline(lang_code="a", device=dev)
-    print(f"[+] Kokoro TTS initialized on {dev}")
-except Exception as e:
-    print(f"[!] Kokoro initialization warning: {e}")
+    # 2. Chatterbox Turbo Voice Clone (Canon Edgerunners Season 2 Capri zero-shot neural clone)
+    chatterbox_model = None
+    def get_chatterbox():
+        global chatterbox_model
+        if chatterbox_model is not None:
+            return chatterbox_model
+        try:
+            from chatterbox.tts_turbo import ChatterboxTurboTTS, Conditionals
+            dev = "cuda" if torch.cuda.is_available() else "cpu"
+            print(f"[*] Initializing Chatterbox Turbo on {dev}...")
+            model = ChatterboxTurboTTS.from_pretrained(device=dev)
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            cond_path = os.path.join(base_dir, "capri_chatterbox_conds.pt")
+            if os.path.exists(cond_path):
+                model.conds = Conditionals.load(cond_path, map_location=dev).to(dev)
+                print("[+] Loaded precomputed Capri voice conditionals into Chatterbox!")
+            else:
+                ref_audio = os.path.join(base_dir, "Capri Explains How She Was Created ~ Cyberpunk Edgerunners Season 2 Episode 4.mp3")
+                if os.path.exists(ref_audio):
+                    model.prepare_conditionals(ref_audio)
+                    model.conds.save(cond_path)
+                    print("[+] Precomputed and saved Capri voice conditionals into Chatterbox!")
+            chatterbox_model = model
+            return chatterbox_model
+        except Exception as e:
+            print(f"[!] Chatterbox init warning: {e}")
+            return None
+
+    # 3. Kokoro Ultra-Realistic Human TTS
     kokoro_pipeline = None
+    try:
+        import kokoro
+        dev = "cuda" if torch.cuda.is_available() else "cpu"
+        kokoro_pipeline = kokoro.KPipeline(lang_code="a", device=dev)
+        print(f"[+] Kokoro TTS initialized on {dev}")
+    except Exception as e:
+        print(f"[!] Kokoro initialization warning: {e}")
+        kokoro_pipeline = None
 
-# 4. Cactus Whistle STT (Ultra-lightweight 16.9MB CPU-first ASR with 7.5ms latency)
-whistle_pipeline = None
-try:
-    import needle
-    whistle_pipeline = needle.Whistle()
-    print("[+] Cactus Whistle STT initialized (Ultra-fast CPU ASR)")
-except Exception as w_err:
-    print(f"[!] Cactus Whistle load warning: {w_err}")
+    # 4. Cactus Whistle STT (Ultra-lightweight 16.9MB CPU-first ASR with 7.5ms latency)
     whistle_pipeline = None
+    try:
+        import needle
+        whistle_pipeline = needle.Whistle()
+        print("[+] Cactus Whistle STT initialized (Ultra-fast CPU ASR)")
+    except Exception as w_err:
+        print(f"[!] Cactus Whistle load warning: {w_err}")
+        whistle_pipeline = None
 
-# 5. Whisper on CUDA (GPU accelerated instant STT fallback)
-whisper_pipeline = None
-try:
-    from transformers import pipeline
-    whisper_dev = "cuda" if torch.cuda.is_available() else "cpu"
-    whisper_pipeline = pipeline("automatic-speech-recognition", model="openai/whisper-base", device=whisper_dev)
-    print(f"[+] Whisper-base STT initialized on {whisper_dev}")
-except Exception as w_err:
-    print(f"[!] Whisper load warning: {w_err}")
+    # 5. Whisper on CUDA (GPU accelerated instant STT fallback)
     whisper_pipeline = None
+    try:
+        from transformers import pipeline
+        whisper_dev = "cuda" if torch.cuda.is_available() else "cpu"
+        whisper_pipeline = pipeline("automatic-speech-recognition", model="openai/whisper-base", device=whisper_dev)
+        print(f"[+] Whisper-base STT initialized on {whisper_dev}")
+    except Exception as w_err:
+        print(f"[!] Whisper load warning: {w_err}")
+        whisper_pipeline = None
 
-# 6. RapidOCR Engine (Screen text & active page perception)
-rapid_ocr = None
-try:
-    from rapidocr_onnxruntime import RapidOCR
-    rapid_ocr = RapidOCR()
-    print("[+] RapidOCR engine initialized")
-except Exception as ocr_err:
-    print(f"[!] RapidOCR load warning: {ocr_err}")
+    # 6. RapidOCR Engine (Screen text & active page perception)
     rapid_ocr = None
+    try:
+        from rapidocr_onnxruntime import RapidOCR
+        rapid_ocr = RapidOCR()
+        print("[+] RapidOCR engine initialized")
+    except Exception as ocr_err:
+        print(f"[!] RapidOCR load warning: {ocr_err}")
+        rapid_ocr = None
 
-# 7. Speech Recognition fallback
-try:
-    import speech_recognition as sr
-    sr_recognizer = sr.Recognizer()
-    sr_recognizer.energy_threshold = 280
-    sr_recognizer.dynamic_energy_threshold = True
-    print("[+] SpeechRecognition engine initialized")
-except Exception as e:
-    print(f"[!] SpeechRecognition warning: {e}")
-    sr_recognizer = None
-
+    # 7. Speech Recognition fallback
+    try:
+        import speech_recognition as sr
+        sr_recognizer = sr.Recognizer()
+        sr_recognizer.energy_threshold = 280
+        sr_recognizer.dynamic_energy_threshold = True
+        print("[+] SpeechRecognition engine initialized")
+    except Exception as e:
+        print(f"[!] SpeechRecognition warning: {e}")
+        sr_recognizer = None
 
 def get_screen_context(include_ocr=False):
     info = {
@@ -257,7 +267,9 @@ def execute_action(payload):
                 "youtube": "start https://www.youtube.com",
                 "google": "start https://www.google.com"
             }
-            target = app_map.get(arg.lower().strip(), arg)
+            target = app_map.get(arg.lower().strip())
+            if target is None:
+                return {"ok": False, "summary": "Unsupported app. Choose a supported application name."}
             subprocess.Popen(target, shell=True)
             return {"ok": True, "summary": f"Launched {arg} on your PC, choom."}
 
@@ -365,6 +377,8 @@ def execute_action(payload):
 
 
 def synthesize_tts_wav(text, voice_name=None):
+    if bundled_audio.AVAILABLE:
+        return bundled_audio.synthesize(text, voice_name)
     text = (text or "").strip()
     if not text:
         return None
@@ -456,6 +470,8 @@ def synthesize_tts_wav(text, voice_name=None):
 
 
 def transcribe_stt_audio(raw_bytes, lang="en"):
+    if bundled_audio.AVAILABLE:
+        return bundled_audio.transcribe(raw_bytes, lang)
     if not raw_bytes or len(raw_bytes) < 400:
         return ""
 
@@ -584,6 +600,8 @@ class HelperHandler(BaseHTTPRequestHandler):
         if parsed.path == "/health":
             self._send_json({
                 "ok": True,
+                "bundled_speech": bundled_audio.AVAILABLE,
+                "speech_language": "en" if bundled_audio.AVAILABLE else "multilingual",
                 "chatterbox": chatterbox_model is not None,
                 "kokoro": kokoro_pipeline is not None,
                 "whistle": whistle_pipeline is not None,
@@ -621,7 +639,11 @@ class HelperHandler(BaseHTTPRequestHandler):
             except Exception:
                 text = raw.decode("utf-8", errors="ignore")
                 voice = "chatterbox"
-            wav_bytes = synthesize_tts_wav(text, voice)
+            try:
+                wav_bytes = synthesize_tts_wav(text, voice)
+            except Exception as error:
+                self._send_json({"ok": False, "error": str(error)}, 500)
+                return
             if wav_bytes:
                 self.send_response(200)
                 self.send_header("Content-Type", "audio/wav")
@@ -635,7 +657,11 @@ class HelperHandler(BaseHTTPRequestHandler):
         if parsed.path == "/stt":
             q = urllib.parse.parse_qs(parsed.query)
             lang = q.get("lang", ["en"])[0]
-            transcribed = transcribe_stt_audio(raw, lang=lang)
+            try:
+                transcribed = transcribe_stt_audio(raw, lang=lang)
+            except Exception as error:
+                self._send_json({"ok": False, "error": str(error)}, 400)
+                return
             self._send_json({"ok": True, "text": transcribed})
             return
 
@@ -672,7 +698,16 @@ class HelperHandler(BaseHTTPRequestHandler):
 
 def main():
     import threading
-    threading.Thread(target=get_chatterbox, daemon=True).start()
+    if len(sys.argv) == 3 and sys.argv[1] == "--self-test":
+        wav = bundled_audio.synthesize("Hello Capri. Open the calculator.", "construct_echo")
+        text = bundled_audio.transcribe(wav)
+        if len(wav) < 1000 or not text or "calculator" not in text:
+            raise RuntimeError("Bundled speech round trip failed: " + text)
+        with open(sys.argv[2], "w", encoding="utf-8") as output:
+            json.dump({"ok": True, "wav_bytes": len(wav), "transcript": text}, output)
+        return
+    if not bundled_audio.AVAILABLE:
+        threading.Thread(target=get_chatterbox, daemon=True).start()
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 17777
     server = ThreadingHTTPServer(("127.0.0.1", port), HelperHandler)
     server.serve_forever()
