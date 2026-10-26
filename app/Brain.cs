@@ -428,6 +428,7 @@ namespace CapriDesktop
 
         private static HttpWebRequest Create(string url, int timeout)
         {
+            ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
             request.Proxy = null;
             request.UserAgent = "Capri-Desktop";

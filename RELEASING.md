@@ -2,7 +2,7 @@
 
 ## Website
 
-`site/` is the canonical GitHub Pages source. Do not edit `docs/` separately; it is a compatibility mirror. `.github/workflows/pages.yml` uploads `site/` on a push to main. Repository Settings → Pages → Source must be **GitHub Actions**. The site uses relative asset links and works under `/capri-cyberpunk/`.
+`site/` is the canonical GitHub Pages source. Do not edit `docs/` separately; it is a compatibility mirror. `.github/workflows/pages.yml` uploads `site/` on a push to main or a published release. The deployment refreshes its fallback snapshot from the latest stable release. Repository Settings → Pages → Source must be **GitHub Actions**. The site uses relative asset links and works under `/capri-cyberpunk/`.
 
 Download links, version and package size come from this repository's latest non-prerelease GitHub Release. `site/release.json` is an offline/API-rate-limit fallback snapshot; refresh it after publishing a release. The site never points to another fork's package.
 
@@ -32,7 +32,7 @@ Use Windows x64, PowerShell, .NET Framework 4.8 compiler, and Python 3.12 (3.10.
 For a release already tested locally:
 
 ```powershell
-gh release create v1.3.0 release-output/Capri-Desktop-v1.3.0-Windows-x64.zip release-output/SHA256SUMS.txt --target main --title 'Capri v1.3.0' --notes-file CHANGELOG.md
+gh release create v1.3.1 release-output/Capri-Desktop-v1.3.1-Windows-x64.zip release-output/SHA256SUMS.txt --target main --title 'Capri v1.3.1' --notes-file CHANGELOG.md
 ```
 
 Use the actual configured version/asset. To refresh the website snapshot:

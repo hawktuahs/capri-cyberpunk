@@ -1,4 +1,6 @@
-# Capri v1.3.0
+# Capri v1.3.1
+
+- Initialize TLS 1.2 before the first cloud request, including on older .NET defaults.
 
 - Full Windows x64 package includes the CPU speech runtime, quantized Kokoro TTS, and Vosk English STT. No end-user Python or CUDA setup.
 - New website and setup guide covering Groq, NVIDIA NIM, Ollama, voice, controls, data handling and upgrades.
